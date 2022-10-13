@@ -1,0 +1,71 @@
+version: "3.6"
+
+x-core-service:
+  &core-service
+  build: ../core-service
+  volumes:
+    - ../core-service:/app
+  depends_on:
+    - web-service
+
+services:
+  database:
+    volumes:
+      - ../../db_dump:/var/lib/postgresql/data
+    depends_on:
+      - rabbitmq
+
+  web-service:
+    depends_on:
+      - database
+    ports:
+      - 8080:8080
+
+  auth-service:
+    build: ../auth-service
+    volumes:
+      - ../auth-service:/app
+    depends_on:
+      - web-service
+
+  core-service:
+    <<: *core-service
+    command: sh -c "/wait && php artisan migrate --force && php artisan egal:run && php artisan egal:listener:run"
+
+  core-service-queue:
+    <<: *core-service
+    command: sh -c "/wait && php artisan queue:work"
+
+  core-service-schedule:
+    <<: *core-service
+    command: sh -c "/wait && php artisan schedule:work"
+
+  proxy:
+    build:
+      context: ../proxy
+      args:
+        SERVER_NAME: ${SERVER_NAME}
+        ENVIRONMENT_NAME: ${CI_ENVIRONMENT_NAME}
+    ports:
+      - 80:80
+
+  adminer:
+    ports:
+      - 63:8080
+
+  rabbitmq:
+    ports:
+      - ${RABBITMQ_PORT:-5672}:5672
+      - ${RABBITMQ_MANAGER_PORT:-15672}:15672
+
+  centrifugo:
+    build:
+      context: ../centrifugo
+      args:
+        CENTRIFUGO_TOKEN_HMAC_SECRET_KEY: ${CENTRIFUGO_TOKEN_HMAC_SECRET_KEY:-1dcc78b0-2abe-4e26-89e6-de1cea0e0949}
+        CENTRIFUGO_ADMIN_PASSWORD: ${CENTRIFUGO_ADMIN_PASSWORD:-admin_password}
+        CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:-6b39712f-e984-4d82-8369-9c45f3111f9e}
+        CENTRIFUGO_ADMIN_SECRET: ${CENTRIFUGO_ADMIN_SECRET:-9b6f6854-7525-4025-99df-0a8f288acdd0}
+        ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+    ports:
+      - 8888:8000

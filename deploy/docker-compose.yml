@@ -1,0 +1,120 @@
+version: "3.6"
+x-core-service:
+  &core-service
+  tty: true
+  environment:
+    APP_SERVICE_NAME: core
+    APP_SERVICE_KEY: ${CORE_KEY:-w8D3A9XNhR0ckQlGo*%LWFfPzuHEKxj4}
+    APP_DEBUG: ${APP_DEBUG:-false}
+    DB_DATABASE: ${CORE_DATABASE:-core}
+    DB_HOST: ${PROJECT_NAME:-project}-database
+    DB_PASSWORD: ${DATABASE_PASSWORD:-password}
+    RABBITMQ_HOST: ${PROJECT_NAME:-project}-rabbitmq
+    RABBITMQ_USER: ${RABBITMQ_USERNAME:-admin}
+    RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-password}
+    WAIT_HOSTS: ${PROJECT_NAME:-project}-rabbitmq:5672, ${PROJECT_NAME:-project}-database:5432
+    EMAIL_SENDER_PASSWORD: ${EMAIL_SENDER_PASSWORD:-zxcasdqwe1!}
+    EMAIL_SENDER_NAME: ${EMAIL_SENDER_NAME:-sputnik_test}
+    EMAIL_SENDER_EMAIL: ${EMAIL_SENDER_EMAIL:-abobazxcqwe123@gmail.com}
+    CENTRIFUGO_SECRET: ${CENTRIFUGO_TOKEN_HMAC_SECRET_KEY:-1dcc78b0-2abe-4e26-89e6-de1cea0e0949}
+    CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:-6b39712f-e984-4d82-8369-9c45f3111f9e}
+    CENTRIFUGO_API_URL: http://centrifugo:8000/api
+    CENTRIFUGO_TOKEN_TTL: ${CENTRIFUGO_TOKEN_TTL:-7200}
+  restart: on-failure
+
+services:
+  rabbitmq:
+    container_name: ${PROJECT_NAME:-project}-rabbitmq
+    image: ${RABBITMQ_TAG:-bitnami/rabbitmq:latest}
+    environment:
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-password}
+      RABBITMQ_PLUGINS: rabbitmq_management,rabbitmq_consistent_hash_exchange
+
+  web-service:
+    container_name: ${PROJECT_NAME:-project}-web-service
+    image: egalbox/web-service:2.2.1
+    restart: on-failure
+    environment:
+      PROJECT_NAME: ${PROJECT_NAME:-project}
+      APP_SERVICE_NAME: web
+      RABBITMQ_HOST: ${PROJECT_NAME:-project}-rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USERNAME:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-password}
+      WAIT_HOSTS: ${PROJECT_NAME:-project}-rabbitmq:5672
+
+  database:
+    container_name: ${PROJECT_NAME:-project}-database
+    image: egalbox/postgres:2.0.0
+    restart: on-failure
+    environment:
+      POSTGRES_MULTIPLE_DATABASES: ${AUTH_DATABASE:-auth},${CORE_DATABASE:-core}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-password}
+
+  auth-service:
+    container_name: ${PROJECT_NAME:-project}-auth-service
+    tty: true
+    environment:
+      APP_SERVICE_NAME: auth
+      APP_SERVICE_KEY: ${AUTH_KEY:-uZsLnAJz35FWUTVx@eg#Xirv6I*jcw2Y}
+      APP_SERVICES: core:${CORE_KEY:-w8D3A9XNhR0ckQlGo*%LWFfPzuHEKxj4}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      DB_DATABASE: ${AUTH_DATABASE:-auth}
+      DB_HOST: ${PROJECT_NAME:-project}-database
+      DB_PASSWORD: ${DATABASE_PASSWORD:-password}
+      RABBITMQ_HOST: ${PROJECT_NAME:-project}-rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USERNAME:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-password}
+      WAIT_HOSTS: ${PROJECT_NAME:-project}-rabbitmq:5672, ${PROJECT_NAME:-project}-database:5432
+      EMAIL_SENDER_PASSWORD: ${EMAIL_SENDER_PASSWORD:-zxcasdqwe1!}
+      EMAIL_SENDER_NAME: ${EMAIL_SENDER_NAME:-sputnik_test}
+      EMAIL_SENDER_EMAIL: ${EMAIL_SENDER_EMAIL:-abobazxcqwe123@gmail.com}
+      APP_REQUEST_WAIT_REPLY_MESSAGE_TTL: 60
+    restart: on-failure
+
+  core-service:
+    <<: *core-service
+    container_name: ${PROJECT_NAME:-project}-core-service
+
+  core-service-queue:
+    <<: *core-service
+    container_name: ${PROJECT_NAME:-project}-core-service-queue
+
+  core-service-schedule:
+    <<: *core-service
+    container_name: ${PROJECT_NAME:-project}-core-service-schedule
+
+  adminer:
+    container_name: ${PROJECT_NAME:-project}-adminer
+    image: adminer
+    restart: always
+
+  proxy:
+    container_name: ${PROJECT_NAME:-project}-proxy
+    restart: always
+
+  centrifugo:
+    container_name: ${PROJECT_NAME:-project}-centrifugo
+    image: centrifugo/centrifugo:v3
+    restart: always
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    environment:
+      CENTRIFUGO_WEB: 1
+      CENTRIFUGO_ADMIN: 1
+      CENTRIFUGO_DEBUG: 1
+      CENTRIFUGO_CONNECTION_LIFETIME: 0
+      CENTRIFUGO_WATCH: 0
+      CENTRIFUGO_CLIENT_INSECURE: 1
+      CENTRIFUGO_ADMIN_INSECURE: 0
+      CENTRIFUGO_API_INSECURE: 0
+      CENTRIFUGO_PUBLISH: 1
+      CENTRIFUGO_PRESENCE: 0
+      CENTRIFUGO_JOIN_LEAVE: 0
+      CENTRIFUGO_HISTORY_SIZE: 10
+      CENTRIFUGO_HISTORY_TTL: 300s
+      CENTRIFUGO_HISTORY_RECOVER: 1
+      CENTRIFUGO_ANONYMOUS: 0

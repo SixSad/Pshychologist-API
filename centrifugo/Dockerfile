@@ -1,0 +1,15 @@
+FROM centrifugo/centrifugo:v3
+
+COPY config.json ./config.json
+
+ARG CENTRIFUGO_API_KEY
+ARG CENTRIFUGO_ADMIN_PASSWORD
+ARG CENTRIFUGO_ADMIN_SECRET
+ARG CENTRIFUGO_TOKEN_HMAC_SECRET_KEY
+ARG ALLOWED_ORIGINS
+
+RUN sed -i 's/{{ CENTRIFUGO_API_KEY }}/'$CENTRIFUGO_API_KEY'/g' ./config.json \
+    && sed -i 's/{{ CENTRIFUGO_ADMIN_PASSWORD }}/'$CENTRIFUGO_ADMIN_PASSWORD'/g' ./config.json \
+    && sed -i 's/{{ CENTRIFUGO_ADMIN_SECRET }}/'$CENTRIFUGO_ADMIN_SECRET'/g' ./config.json \
+    && sed -i 's/{{ CENTRIFUGO_TOKEN_HMAC_SECRET_KEY }}/'$CENTRIFUGO_TOKEN_HMAC_SECRET_KEY'/g' ./config.json \
+    && sed -i 's/{{ ALLOWED_ORIGINS }}/'$ALLOWED_ORIGINS'/g' ./config.json 

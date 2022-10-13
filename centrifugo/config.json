@@ -1,0 +1,21 @@
+{
+  "token_hmac_secret_key": "{{ CENTRIFUGO_TOKEN_HMAC_SECRET_KEY }}",
+  "admin_password": "{{ CENTRIFUGO_ADMIN_PASSWORD }}",
+  "admin_secret": "{{ CENTRIFUGO_ADMIN_SECRET }}",
+  "api_key": "{{ CENTRIFUGO_API_KEY }}",
+  "admin": true,
+  "connection_lifetime": 0,
+  "watch": false,
+  "client_insecure": true,
+  "admin_insecure": false,
+  "api_insecure": false,
+  "publish": true,
+  "debug": true,
+  "presence": true,
+  "join_leave": true,
+  "history_size": 10,
+  "anonymous": false,
+  "allowed_origins": ["{{ ALLOWED_ORIGINS }}"],
+  "history_ttl": "720h",
+  "recover": true
+}
